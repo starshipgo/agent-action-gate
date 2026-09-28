@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+coverage/
+dist/
+*.tsbuildinfo
+.wrangler/
+.dev.vars*
+.env*
+!.env.example

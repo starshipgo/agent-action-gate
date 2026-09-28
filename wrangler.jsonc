@@ -1,0 +1,17 @@
+{ "preview_urls": true,
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agent-action-gate",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-25",
+  "ai": {
+    "binding": "AI"
+  },
+  "secrets": {
+    "required": ["GATE_API_KEY"]
+  },
+  "previews": {
+    "ai": {
+      "binding": "AI"
+    }
+  }
+}

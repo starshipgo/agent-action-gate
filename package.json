@@ -1,0 +1,20 @@
+{
+  "name": "agent-action-gate",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cf-typegen": "wrangler types",
+    "cf-typegen:check": "wrangler types --check",
+    "dev": "wrangler dev",
+    "preview": "wrangler preview",
+    "inspect:dify": "bun run scripts/inspect-dify.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.141.0"
+  }
+}
