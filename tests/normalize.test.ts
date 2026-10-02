@@ -18,7 +18,7 @@ describe("normalizeToolCall", () => {
       request(
         JSON.stringify({
           target_tenant: " TENANT-A ",
-          amount: "85.50",
+          amount_minor: 8550,
           to: " PERSON@EXAMPLE.COM ",
           nested: { keep: "Original Case" },
         }),
@@ -32,11 +32,11 @@ describe("normalizeToolCall", () => {
       tool_name: "email.send",
       request_tenant: "tenant-a",
       target_tenant: "tenant-a",
-      amount: 85.5,
+      amount_minor: 8550,
       recipient: "person@example.com",
       args: {
         target_tenant: " TENANT-A ",
-        amount: "85.50",
+        amount_minor: 8550,
         to: " PERSON@EXAMPLE.COM ",
         nested: { keep: "Original Case" },
       },
@@ -59,32 +59,42 @@ describe("normalizeToolCall", () => {
       expect(output.parse_ok).toBe(false);
       expect(output.parse_error.length).toBeGreaterThan(0);
       expect(output.normalized.args).toEqual({});
-      expect(output.normalized.amount).toBeNull();
+      expect(output.normalized.amount_minor).toBeNull();
       expect(output.normalized.target_tenant).toBe("");
       expect(output.normalized.recipient).toBe("");
     });
   }
 
-  const amountCases = [
-    ["finite number", 12.5, 12.5],
-    ["numeric string", "12.5", 12.5],
-    ["exponent string", "1e2", 100],
+  const amountMinorCases = [
+    ["positive integer", 1250, 1250],
     ["zero", 0, 0],
-    ["blank string", "   ", null],
-    ["non-numeric string", "twelve", null],
-    ["overflow string", "1e999", null],
+    ["negative integer", -1250, -1250],
+    ["maximum safe integer", Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+    ["numeric string", "1250", null],
+    ["fractional number", 12.5, null],
+    ["unsafe integer", Number.MAX_SAFE_INTEGER + 1, null],
     ["missing value", undefined, null],
   ] as const;
 
-  for (const [label, value, expected] of amountCases) {
-    test(`extracts ${label} amount`, () => {
-      const args = value === undefined ? {} : { amount: value };
+  for (const [label, value, expected] of amountMinorCases) {
+    test(`extracts ${label} amount_minor`, () => {
+      const args = value === undefined ? {} : { amount_minor: value };
       const output = normalizeToolCall(request(JSON.stringify(args)));
 
       expect(output.parse_ok).toBe(true);
-      expect(output.normalized.amount).toBe(expected);
+      expect(output.normalized.amount_minor).toBe(expected);
     });
   }
+
+  test("does not interpret the legacy amount field", () => {
+    const output = normalizeToolCall(
+      request(JSON.stringify({ amount: 85, target_tenant: "tenant-a" })),
+    );
+
+    expect(output.parse_ok).toBe(true);
+    expect(output.normalized.amount_minor).toBeNull();
+    expect(output.normalized.args.amount).toBe(85);
+  });
 
   test("ignores non-string tenant and recipient fields", () => {
     const output = normalizeToolCall(

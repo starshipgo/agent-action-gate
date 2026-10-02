@@ -1,17 +1,57 @@
-{ "preview_urls": true,
+{
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "agent-action-gate",
   "main": "src/worker.ts",
-  "compatibility_date": "2026-09-25",
+  "compatibility_date": "2026-10-01",
+  "preview_urls": true,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/v1/*", "/health"]
+  },
   "ai": {
     "binding": "AI"
   },
-  "secrets": {
-    "required": ["GATE_API_KEY"]
-  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "EVALUATE_RATE_LIMITER",
+      // Safe local example. Use a separate, private namespace for remote use.
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ],
   "previews": {
     "ai": {
       "binding": "AI"
-    }
+    },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        // Public template only. Keep actual Preview values in an ignored
+        // wrangler.preview.local.jsonc, never in this tracked config.
+        "database_name": "REPLACE_WITH_PREVIEW_D1_NAME",
+        "database_id": "REPLACE_WITH_PREVIEW_D1_ID",
+        "migrations_dir": "migrations"
+      }
+    ],
+    "ratelimits": [
+      {
+        // Rate-limit bindings use `name` as the runtime binding identifier.
+        "name": "EVALUATE_RATE_LIMITER",
+        "namespace_id": "REPLACE_WITH_PREVIEW_RATE_NAMESPACE_ID",
+        "simple": {
+          "limit": 60,
+          "period": 60
+        }
+      }
+    ]
   }
 }

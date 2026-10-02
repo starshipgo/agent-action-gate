@@ -5,7 +5,12 @@ import type {
   SemanticRiskContext,
 } from "./contracts";
 import { normalizeToolCall } from "./normalize";
-import { applyPolicy, rejectSemanticClassifierFailure } from "./policy";
+import {
+  applyDeterministicPrechecks,
+  applyPolicy,
+  rejectSemanticClassifierFailure,
+} from "./policy";
+import type { NormalizationResult } from "./contracts";
 import { normalizeSemanticRisk } from "./risk";
 
 export const DEFAULT_CLASSIFIER_TIMEOUT_MS = 10_000;
@@ -21,13 +26,30 @@ class SemanticClassifierTimeoutError extends Error {
   }
 }
 
-function semanticContext(input: ActionRequest): SemanticRiskContext {
+export function semanticContext(input: ActionRequest): SemanticRiskContext {
   return {
     source_text: String(input.source_text ?? ""),
     tool_name: String(input.tool_name ?? ""),
     agent_role: String(input.agent_role ?? ""),
     request_tenant: String(input.request_tenant ?? ""),
   };
+}
+
+export type PreparedEvaluation =
+  | { kind: "complete"; result: EvaluationResult }
+  | {
+      kind: "needs_semantic";
+      input: ActionRequest;
+      normalization: NormalizationResult;
+    };
+
+export function prepareEvaluation(input: ActionRequest): PreparedEvaluation {
+  const normalization = normalizeToolCall(input);
+  const precheck = applyDeterministicPrechecks(normalization);
+
+  return precheck === null
+    ? { kind: "needs_semantic", input, normalization }
+    : { kind: "complete", result: precheck };
 }
 
 async function classifyWithTimeout(
@@ -59,29 +81,37 @@ async function classifyWithTimeout(
  * decisions to the deterministic policy engine. The classifier stays injected
  * so this orchestration remains provider-neutral and tests need no live model.
  */
-export async function evaluateAction(
-  input: ActionRequest,
+export async function evaluatePreparedAction(
+  prepared: Extract<PreparedEvaluation, { kind: "needs_semantic" }>,
   classifySemanticRisk: SemanticRiskClassifier,
   options: EvaluationOptions = {},
 ): Promise<EvaluationResult> {
-  const normalization = normalizeToolCall(input);
-
-  if (!normalization.parse_ok) {
-    return applyPolicy(normalization, null);
-  }
-
   let semanticRisk;
 
   try {
     const rawRisk = await classifyWithTimeout(
       classifySemanticRisk,
-      semanticContext(input),
+      semanticContext(prepared.input),
       options.classifier_timeout_ms ?? DEFAULT_CLASSIFIER_TIMEOUT_MS,
     );
     semanticRisk = normalizeSemanticRisk(rawRisk);
   } catch {
-    return rejectSemanticClassifierFailure(normalization);
+    return rejectSemanticClassifierFailure(prepared.normalization);
   }
 
-  return applyPolicy(normalization, semanticRisk);
+  return applyPolicy(prepared.normalization, semanticRisk);
+}
+
+export async function evaluateAction(
+  input: ActionRequest,
+  classifySemanticRisk: SemanticRiskClassifier,
+  options: EvaluationOptions = {},
+): Promise<EvaluationResult> {
+  const prepared = prepareEvaluation(input);
+
+  if (prepared.kind === "complete") {
+    return prepared.result;
+  }
+
+  return evaluatePreparedAction(prepared, classifySemanticRisk, options);
 }

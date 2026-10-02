@@ -6,7 +6,7 @@ import { normalizeSemanticRisk, semanticSignalIsTrue } from "../src/risk";
 const baseRequest: ActionRequest = {
   agent_role: "support-agent",
   tool_name: "ticket.create",
-  arguments_json: "{}",
+  arguments_json: '{"target_tenant":"tenant-a"}',
   source_text: "fixture",
   request_tenant: "tenant-a",
 };
@@ -63,11 +63,26 @@ describe("semantic boundary regressions", () => {
     expect(output.policy_codes).toEqual(["MALFORMED_ARGUMENTS_JSON"]);
   });
 
+  test("missing target tenant bypasses semantic classification", async () => {
+    let called = false;
+
+    const output = await evaluateAction(
+      { ...baseRequest, arguments_json: "{}" },
+      () => {
+        called = true;
+        return falseStringRisk;
+      },
+    );
+
+    expect(called).toBe(false);
+    expect(output.policy_codes).toEqual(["MISSING_TARGET_TENANT"]);
+  });
+
   test("the sensor receives raw context and cannot grant email.send", async () => {
     const input: ActionRequest = {
       agent_role: " Support-Agent ",
       tool_name: " EMAIL.SEND ",
-      arguments_json: "{}",
+      arguments_json: '{"target_tenant":"tenant-a"}',
       source_text: "Raw Source Text",
       request_tenant: " Tenant-A ",
     };
@@ -94,7 +109,8 @@ describe("semantic boundary regressions", () => {
       {
         ...baseRequest,
         tool_name: " CRM.READ_CONTACT ",
-        arguments_json: '{"contact_id":"c-123"}',
+        arguments_json:
+          '{"contact_id":"c-123","target_tenant":"tenant-a"}',
       },
       () => {
         throw new Error("provider unavailable");
@@ -107,7 +123,10 @@ describe("semantic boundary regressions", () => {
       policy_codes: ["SEMANTIC_CLASSIFIER_FAILURE"],
       requires_approval: false,
       normalized_tool: "crm.read_contact",
-      normalized_args: { contact_id: "c-123" },
+      normalized_args: {
+        contact_id: "c-123",
+        target_tenant: "tenant-a",
+      },
     });
   });
 
@@ -131,14 +150,17 @@ describe("semantic boundary regressions", () => {
   });
 });
 
-describe("intentional post-parity refund correction", () => {
-  for (const amount of [0, -1, -500]) {
-    test(`refund amount ${amount} is invalid`, async () => {
+describe("minor-unit refund validation", () => {
+  for (const amountMinor of [0, -1, -500, 85.5]) {
+    test(`refund amount_minor ${amountMinor} is invalid`, async () => {
       const output = await evaluateAction(
         {
           ...baseRequest,
           tool_name: "refund.create",
-          arguments_json: JSON.stringify({ amount }),
+          arguments_json: JSON.stringify({
+            amount_minor: amountMinor,
+            target_tenant: "tenant-a",
+          }),
         },
         () => falseStringRisk,
       );
@@ -151,4 +173,20 @@ describe("intentional post-parity refund correction", () => {
       });
     });
   }
+
+  test("legacy amount does not authorize a refund", async () => {
+    const output = await evaluateAction(
+      {
+        ...baseRequest,
+        tool_name: "refund.create",
+        arguments_json: JSON.stringify({
+          amount: 85,
+          target_tenant: "tenant-a",
+        }),
+      },
+      () => falseStringRisk,
+    );
+
+    expect(output.policy_codes).toEqual(["INVALID_REFUND_AMOUNT"]);
+  });
 });

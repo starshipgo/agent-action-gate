@@ -7,3 +7,17 @@ dist/
 .dev.vars*
 .env*
 !.env.example
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+logs/
+wrangler.local.*
+wrangler.*.local.*
+.secrets/
+*.secret.local
+*.secret.tmp
+*.token.tmp

@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agent-action-gate-preview-migrations",
+  "compatibility_date": "2026-09-25",
+  "d1_databases": [
+    {
+      // D1 migration commands resolve a top-level binding from this dedicated
+      // config. Put actual values only in an ignored
+      // wrangler.preview-migrations.local.jsonc for local operator use.
+      "binding": "PREVIEW_DB",
+      "database_name": "REPLACE_WITH_PREVIEW_D1_NAME",
+      "database_id": "REPLACE_WITH_PREVIEW_D1_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

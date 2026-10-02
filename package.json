@@ -4,17 +4,32 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "vite build && bun run normalize:build-metadata && bun run check:frontend-secrets",
+    "normalize:build-metadata": "bun run scripts/normalize-wrangler-build.ts",
+    "check:frontend-secrets": "bun run scripts/check-frontend-bundle.ts",
     "cf-typegen": "wrangler types",
     "cf-typegen:check": "wrangler types --check",
-    "dev": "wrangler dev",
-    "preview": "wrangler preview",
+    "dev": "vite",
+    "preview": "vite preview",
     "inspect:dify": "bun run scripts/inspect-dify.ts",
+    "eval": "bun run evals/run.ts",
+    "check:public-release": "bun run scripts/public-release-check.ts",
+    "public-release-check": "bun run scripts/public-release-check.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.19.0",
     "@types/bun": "^1.4.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.1",
     "typescript": "^7.0.2",
+    "vite": "^7.2.2",
     "wrangler": "^4.141.0"
   }
 }

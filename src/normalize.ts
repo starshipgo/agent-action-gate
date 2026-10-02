@@ -9,22 +9,12 @@ function normalizedText(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
 }
 
-function normalizeAmount(args: JsonObject): number | null {
-  const amount = args.amount;
+function normalizeAmountMinor(args: JsonObject): number | null {
+  const amountMinor = args.amount_minor;
 
-  if (typeof amount === "number" && Number.isFinite(amount)) {
-    return amount;
-  }
-
-  if (
-    typeof amount === "string" &&
-    amount.trim() !== "" &&
-    Number.isFinite(Number(amount))
-  ) {
-    return Number(amount);
-  }
-
-  return null;
+  return typeof amountMinor === "number" && Number.isSafeInteger(amountMinor)
+    ? amountMinor
+    : null;
 }
 
 export function normalizeToolCall(input: ActionRequest): NormalizationResult {
@@ -48,7 +38,7 @@ export function normalizeToolCall(input: ActionRequest): NormalizationResult {
     const normalized: NormalizedToolCall = {
       ...base,
       target_tenant: "",
-      amount: null,
+      amount_minor: null,
       recipient: "",
       args: {},
     };
@@ -66,7 +56,7 @@ export function normalizeToolCall(input: ActionRequest): NormalizationResult {
       typeof args.target_tenant === "string"
         ? normalizedText(args.target_tenant)
         : "",
-    amount: normalizeAmount(args),
+    amount_minor: normalizeAmountMinor(args),
     recipient: typeof args.to === "string" ? normalizedText(args.to) : "",
     args,
   };

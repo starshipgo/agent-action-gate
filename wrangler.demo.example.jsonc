@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // FUTURE DEMO TEMPLATE ONLY. Never use Preview/production IDs or credentials.
+  // Public browser scenarios are local fixtures; no real executor is bound.
+  "name": "agent-action-gate-demo-REPLACE",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/v1/*", "/health"]
+  },
+  "ai": { "binding": "AI" },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "REPLACE_WITH_NEW_DEMO_D1_NAME",
+    "database_id": "REPLACE_WITH_NEW_DEMO_D1_ID",
+    "migrations_dir": "migrations"
+  }],
+  "ratelimits": [{
+    "name": "EVALUATE_RATE_LIMITER",
+    "namespace_id": "REPLACE_WITH_NEW_DEMO_RATE_NAMESPACE_ID",
+    "simple": { "limit": 5, "period": 60 }
+  }]
+}

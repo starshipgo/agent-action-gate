@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Usage: BASE_URL=https://preview.example GATE_API_KEY=... ./scripts/smoke-test.sh
+# Usage: BASE_URL=https://preview.example AAG_API_KEY=... ./scripts/smoke-test.sh
 
 set -euo pipefail
 
@@ -17,7 +17,7 @@ command -v curl >/dev/null 2>&1 || fail "curl is required"
 command -v bun >/dev/null 2>&1 || fail "Bun is required"
 
 [[ -n "${BASE_URL:-}" ]] || fail "BASE_URL is required"
-[[ -n "${GATE_API_KEY:-}" ]] || fail "GATE_API_KEY is required"
+[[ -n "${AAG_API_KEY:-}" ]] || fail "AAG_API_KEY is required"
 
 base_url="${BASE_URL%/}"
 temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/agent-action-gate-smoke.XXXXXX")" ||
@@ -82,7 +82,7 @@ request_capture() {
   set +e
   if [[ "$use_authorization" == "yes" ]]; then
     curl_status="$(
-      printf 'Authorization: Bearer %s\n' "$GATE_API_KEY" |
+      printf 'Authorization: Bearer %s\n' "$AAG_API_KEY" |
         curl "${curl_arguments[@]}" --header @- "${base_url}${path}"
     )"
   else

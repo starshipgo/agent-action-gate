@@ -16,7 +16,12 @@ describe("validateEvaluationRequest", () => {
     });
   }
 
-  for (const field of Object.keys(validRequest)) {
+  for (const field of [
+    "agent_role",
+    "tool_name",
+    "arguments_json",
+    "source_text",
+  ] as const) {
     test(`rejects missing ${field}`, () => {
       const body: Record<string, unknown> = { ...validRequest };
       delete body[field];
@@ -24,6 +29,13 @@ describe("validateEvaluationRequest", () => {
       expect(validateEvaluationRequest(body).ok).toBe(false);
     });
   }
+
+  test("accepts an omitted request_tenant for backwards compatibility", () => {
+    const { request_tenant: _omitted, ...body } = validRequest;
+    const output = validateEvaluationRequest(body);
+
+    expect(output).toEqual({ ok: true, value: body });
+  });
 
   test("rejects unknown fields", () => {
     expect(

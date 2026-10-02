@@ -1,4 +1,10 @@
-import type { ActionRequest } from "../contracts";
+export interface IncomingEvaluationRequest {
+  agent_role: string;
+  tool_name: string;
+  arguments_json: string;
+  source_text: string;
+  request_tenant?: string;
+}
 
 const REQUEST_FIELDS = [
   "agent_role",
@@ -25,7 +31,7 @@ const NON_EMPTY_FIELDS = new Set<string>([
 ]);
 
 export type RequestValidationResult =
-  | { ok: true; value: ActionRequest }
+  | { ok: true; value: IncomingEvaluationRequest }
   | { ok: false; errors: string[] };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -50,6 +56,10 @@ export function validateEvaluationRequest(
   for (const field of REQUEST_FIELDS) {
     const fieldValue = value[field];
 
+    if (field === "request_tenant" && fieldValue === undefined) {
+      continue;
+    }
+
     if (typeof fieldValue !== "string") {
       errors.push(`${field} is required and must be a string`);
       continue;
@@ -68,14 +78,19 @@ export function validateEvaluationRequest(
     return { ok: false, errors };
   }
 
+  const request: IncomingEvaluationRequest = {
+    agent_role: value.agent_role as string,
+    tool_name: value.tool_name as string,
+    arguments_json: value.arguments_json as string,
+    source_text: value.source_text as string,
+  };
+
+  if (typeof value.request_tenant === "string") {
+    request.request_tenant = value.request_tenant;
+  }
+
   return {
     ok: true,
-    value: {
-      agent_role: value.agent_role as string,
-      tool_name: value.tool_name as string,
-      arguments_json: value.arguments_json as string,
-      source_text: value.source_text as string,
-      request_tenant: value.request_tenant as string,
-    },
+    value: request,
   };
 }

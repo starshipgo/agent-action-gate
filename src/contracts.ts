@@ -4,6 +4,7 @@ export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export type PolicyCode =
   | "UNKNOWN_TOOL"
+  | "MISSING_TARGET_TENANT"
   | "CROSS_TENANT_ACCESS"
   | "FORBIDDEN_SECRET_ACCESS"
   | "SENSITIVE_EXPORT"
@@ -43,7 +44,7 @@ export interface NormalizedToolCall {
   tool_name: string;
   request_tenant: string;
   target_tenant: string;
-  amount: number | null;
+  amount_minor: number | null;
   recipient: string;
   args: JsonObject;
 }
@@ -106,4 +107,8 @@ export interface EvaluationResult {
   requires_approval: boolean;
   normalized_tool: string;
   normalized_args: JsonObject;
+  /** Present only when a REQUIRE_APPROVAL decision was persisted. */
+  approval_id?: string;
+  /** ISO-8601 timestamp paired with approval_id. */
+  expires_at?: string;
 }

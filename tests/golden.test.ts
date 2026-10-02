@@ -29,7 +29,7 @@ describe("Dify golden cases", () => {
         classifierCalls += 1;
 
         if (fixture.classifier_must_not_run) {
-          throw new Error("semantic classifier ran for malformed JSON");
+          throw new Error("semantic classifier ran for a deterministic denial");
         }
 
         return {

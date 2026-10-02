@@ -1,0 +1,7 @@
+# Future public demo isolation checklist
+
+This is a template and a plan, not a deployment record. Do not point the demo at a Preview or production D1 database, Worker, namespace, API key, operator secret, or tenant. Replace every placeholder in `wrangler.demo.example.jsonc` with newly created *demo-only* resources after a human review. Never commit those values or the resulting private configuration.
+
+The public `/demo` page uses six fixed fictional scenarios in the browser. It has no credential and calls no real executor or Workers AI; any display-only "approval" invokes an in-memory fake. The same Worker source can serve a future isolated demo API, but do not publish an Agent key in the browser. If developer API access is offered, issue separate tenant-bound demo keys manually with a **maximum daily AI quota of 2** and keep the raw keys server-side. The demo rate-limit template is **5 requests per 60 seconds**, and the demo tenant must have only fictional bounded records. No real CRM, email, refund, or production MCP executor may be configured.
+
+Do not configure `OPERATOR_API_KEY` from production on the demo Worker. A future human reviewer must verify the exact resource IDs differ from both Preview and production, the D1 schema is migrated in the isolated demo database, and all `.dev.vars`/`.env` files remain private. The live demo should be taken down if these conditions cannot be met.

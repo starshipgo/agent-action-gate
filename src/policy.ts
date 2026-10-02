@@ -16,6 +16,10 @@ export const KNOWN_TOOLS: ReadonlySet<string> = new Set([
   "secret.read",
 ]);
 
+/** Every currently known tool acts on tenant-owned data or capabilities. */
+export const TENANT_SCOPED_TOOLS: ReadonlySet<string> = KNOWN_TOOLS;
+export const REFUND_LIMIT_MINOR_UNITS = 50_000;
+
 function result(
   normalized: NormalizedToolCall,
   decision: EvaluationResult["decision"],
@@ -46,13 +50,13 @@ export function rejectSemanticClassifierFailure(
 }
 
 /**
- * The sole decision authority. Branch order intentionally matches the exported
- * Dify policy node because that order defines precedence when rules conflict.
+ * Rules that are authoritative without consulting the semantic sensor. Keeping
+ * these separate lets the Worker avoid spending AI quota on calls that cannot
+ * pass the deterministic boundary.
  */
-export function applyPolicy(
+export function applyDeterministicPrechecks(
   normalization: NormalizationResult,
-  semanticRisk: SemanticRiskSignals | null,
-): EvaluationResult {
+): EvaluationResult | null {
   const normalized = normalization.normalized;
 
   if (!normalization.parse_ok) {
@@ -65,21 +69,23 @@ export function applyPolicy(
     );
   }
 
-  if (semanticRisk === null) {
-    throw new TypeError("semantic risk is required for a valid tool call");
-  }
-
   const tool = normalized.tool_name;
 
   if (!KNOWN_TOOLS.has(tool)) {
     return result(normalized, "DENY", "high", ["UNKNOWN_TOOL"], false);
   }
 
-  if (
-    normalized.request_tenant &&
-    normalized.target_tenant &&
-    normalized.request_tenant !== normalized.target_tenant
-  ) {
+  if (TENANT_SCOPED_TOOLS.has(tool) && normalized.target_tenant === "") {
+    return result(
+      normalized,
+      "DENY",
+      "high",
+      ["MISSING_TARGET_TENANT"],
+      false,
+    );
+  }
+
+  if (normalized.request_tenant !== normalized.target_tenant) {
     return result(
       normalized,
       "DENY",
@@ -108,6 +114,30 @@ export function applyPolicy(
       false,
     );
   }
+
+  return null;
+}
+
+/**
+ * The sole decision authority. Branch order intentionally matches the exported
+ * Dify policy node because that order defines precedence when rules conflict.
+ */
+export function applyPolicy(
+  normalization: NormalizationResult,
+  semanticRisk: SemanticRiskSignals | null,
+): EvaluationResult {
+  const normalized = normalization.normalized;
+  const precheck = applyDeterministicPrechecks(normalization);
+
+  if (precheck !== null) {
+    return precheck;
+  }
+
+  if (semanticRisk === null) {
+    throw new TypeError("semantic risk is required for a valid tool call");
+  }
+
+  const tool = normalized.tool_name;
 
   const strongSemanticRisk =
     semanticRisk.prompt_injection ||
@@ -145,9 +175,9 @@ export function applyPolicy(
 
   if (tool === "refund.create") {
     if (
-      typeof normalized.amount !== "number" ||
-      !Number.isFinite(normalized.amount) ||
-      normalized.amount <= 0
+      typeof normalized.amount_minor !== "number" ||
+      !Number.isSafeInteger(normalized.amount_minor) ||
+      normalized.amount_minor <= 0
     ) {
       return result(
         normalized,
@@ -158,7 +188,7 @@ export function applyPolicy(
       );
     }
 
-    if (normalized.amount > 500) {
+    if (normalized.amount_minor > REFUND_LIMIT_MINOR_UNITS) {
       return result(
         normalized,
         "DENY",
